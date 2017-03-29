@@ -3,20 +3,53 @@
  * @private
  */
 const request = require('request')
-
+const util = require('util')
+    // request.debug = true
 
 /**
  * Expose `send`.
  */
- 
-module.exports = function send(body) {
-    function response(error, response, body) {
-        if (error) {
-            console.error(error)
-            throw error
+
+module.exports = function send(body, node = 'messages') {
+    console.log('send:')
+    console.log(util.inspect(serializer(body), {
+        showHidden: false,
+        depth: null
+    }))
+    request({
+        url: `https://graph.facebook.com/${this.API_VERSION}/me/${node}`,
+        method: 'POST',
+        qs: {
+            access_token: this.PAGE_ACCESS_TOKEN
+        },
+        json: true,
+        body: serializer(body)
+    }, response)
+}
+
+function response(err, response, body) {
+    if (err) {
+        console.error(err)
+        throw err
+    }
+    console.log(body)
+}
+
+function serializer(object) {
+    try {
+        return JSON.parse(JSON.stringify(object, jsonReplacer))
+    } catch (err) {
+        console.error(err)
+    }
+}
+
+function jsonReplacer(key, value) {
+    if (value && value.constructor) {
+        const name = value.constructor.name;
+        if (name !== 'String' && name !== 'Number' &&
+            name !== 'Object' && value.constructure) {
+            return value.constructure
         }
     }
-    console.log('send:')
-    console.log(body)
-        // request(`https://graph.facebook.com/${API_VERSION}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, response)
+    return value;
 }

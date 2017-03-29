@@ -3,10 +3,15 @@
  * @private
  */
 const
-    bodyParser = require('body-parser'),
+    http = require('http'),
+    util = require('util'),
+    parse = require('co-body'),
+    Url = require('url'),
+    qs = require('querystring'),
     router = require('router')(),
     send = require('./send')
 
+let VERIFY_TOKEN = ''
 
 /**
  * Initialize `Interface` with given option,
@@ -15,8 +20,10 @@ const
  * @api public
  */
 module.exports = function(option = {}) {
-    Interface.API_VERSION = option.apiVersion | 'v2.8'
-    Interface.PAGE_ACCESS_TOKEN = option.pageAccessToken
+    send.prototype.API_VERSION = option.apiVersion || 'v2.8'
+    send.prototype.PAGE_ACCESS_TOKEN = option.pageAccessToken
+    Interface.send = send
+    VERIFY_TOKEN = option.verifyToken
     return Interface
 }
 
@@ -27,113 +34,150 @@ module.exports = function(option = {}) {
  * @param {Function} handler
  * @api public
  */
-function Interface(req, res, botRouter, handler) {
+const Interface = async function(req, res, botRouter, handler) {
 
-    // Automatic end the request
-    router.use(function(req, res, next) {
-        res.end('finish')
-        next()
-    })
+    // End the response
+    res.end()
 
-    // Parse body to JSON format
-    router.use(bodyParser.json())
-
-    router.use(function(req, res, next) {
-        try {
-            Object.assign(req, normalize(req.body))
-
-            // setup res.send
-            res.send = function(body) {
-                let structure = {
-                    recipient: req.psid,
-                    message: serializer(body)
-                }
-                send(structure)
-            }
-            next()
-        } catch (e) {
-            console.error(e)
-            return next(e)
+    // Used to verify webhook
+    if (req.method.toLowerCase() === 'get') {
+        req.query = qs.parse(Url.parse(req.url).query)
+        if (req.query['hub.mode'] === 'subscribe' &&
+            req.query['hub.verify_token'] === VERIFY_TOKEN) {
+            console.info('Validating webhook')
+            res.statusCode = 200
+            res.end(req.query['hub.challenge'])
+        } else {
+            console.error('Failed validation. Make sure the validation tokens match.')
+            res.statusCode = 403
+            res.end()
         }
-    })
+        return
+    }
 
-    router.use(botRouter)
+    // Parse the body to json
+    const body = await parse.json(req)
 
-    router(req, res, handler)
+    try {
+        if (body.object === 'page' && body.entry && body.entry.length)
+            body.entry.forEach((entry) =>
+                entry.messaging.forEach((msg) => {
+                    const userPsid = msg.sender.id
+
+                    // Classfy the data array by method property
+                    const data = {}
+                    normalize(msg)
+                        .forEach((e) => {
+                            if (!data[e.method])
+                                data[e.method] = [e]
+                            else
+                                data[e.method].push(e)
+                        })
+
+                    Object.keys(data).forEach((method) => {
+                        const req = new http.IncomingMessage
+                        req.body = msg
+                        req.psid = userPsid
+                        req.method = method
+                        req.data = data[method]
+
+                        // setup res.send
+                        res.send = function(body) {
+                            // Construct basic body structure
+                            let structure = {
+                                recipient: {
+                                    id: req.psid
+                                },
+                                message: body
+                            }
+
+                            // Send the body
+                            new send(structure)
+                        }
+
+                        botRouter(req, res, handler)
+                    })
+
+                }))
+    } catch (e) {
+        console.error(e)
+    }
+
 }
 
 /**
- * Initialize `Route` with the given `path`,
- *
- * @param {Request} req
- * @param {Response} res
- * @param {Router} botRouter
- * @param {Function} handler
+ * @param {Object} body
  * @api public
  */
 function normalize(body) {
-    let
-        psid = body.sender.id,
-        method,
-        payload = '/foo',
-        text,
-        coordinates,
-        multimedia = {}
+    console.log(util.inspect(body, {
+        showHidden: false,
+        depth: null
+    }))
 
-    // text
-    if (body.text) {
-        method = 'TEXT'
-        text = body.text
+    let data = []
+
+    if (body.message) {
+        const message = body.message
+
+        // text
+        if (message.text && !message.quick_reply) {
+            data.push({
+                method: 'TEXT',
+                text: message.text
+            })
+        }
+        // quick reply
+        else if (message.text && message.quick_reply) {
+            data.push({
+                method: 'REPLY',
+                payload: message.quick_reply.payload
+            })
+        }
+        // attachment
+        else if (message.attachments && message.attachments.length !== 0) {
+            message.attachments.forEach((attachment) => {
+                let _data = {}
+                switch (attachment.type) {
+                    case 'audio':
+                    case 'file':
+                    case 'image':
+                    case 'video':
+                        _data[attachment.type] = attachment.payload.url
+                        break
+                    case 'fallback':
+                        _data.title = attachment.title
+                    case 'location':
+                        _data.coordinates = attachment.coordinates
+                        _data[attachment.type] = attachment.url
+                        break
+                    default:
+                        throw new Error('Unknown method')
+                }
+                _data.method = attachment.type.toUpperCase()
+                data.push(_data)
+            })
+        }
     }
     // postback
     else if (body.postback && body.postback.payload) {
-        method = 'POSTBACK'
-        payload = body.postback.payload
+        data.push({
+            method: 'POSTBACK',
+            payload: body.postback.payload
+        })
     }
-    // attachment
-    else if (body.attachments && body.attachments.length !== 0) {
-        const attachment = body.attachments[0]
-        switch (attachment.type) {
-            case 'audio':
-            case 'fallback':
-            case 'file':
-            case 'image':
-            case 'video':
-                multimedia[attachment.type] = attachment.url
-                break
-            case 'location':
-                coordinates = attachment.coordinates
-                break
-        }
-        method = attachment.type.toUpperCase()
+    // read
+    else if (body.read) {
+        data.push({
+            method: 'READ',
+            watermark: body.read.watermark,
+            seq: body.read.seq
+        })
     }
     // unknown type
-    else
-        throw new Error('no matched method')
-    return Object.assign({
-        psid: body.sender.id,
-        method: method,
-        text: text,
-        payload: payload,
-        coordinates: coordinates
-    }, multimedia)
-}
-
-function serializer(object) {
-    try {
-        return JSON.parse(JSON.stringify(object, jsonReplacer))
-    } catch (err) {
-        console.error(err)
+    else {
+        console.error(body)
+        throw new Error('No matched method')
     }
-}
-
-function jsonReplacer(key, value) {
-    const name = value.constructor.name;
-    // console.log(name)
-    // console.log(value)
-    if (name !== 'String' && name !== 'Number' &&
-        name !== 'Object' && value.constructure) {
-        return value.constructure
-    }
-    return value;
+    return data
 }
