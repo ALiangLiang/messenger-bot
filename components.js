@@ -2,11 +2,21 @@
  * Module dependencies.
  * @private
  */
-var Url = require('url')
+const
+    Url = require('url'),
+    Joi = require('joi')
+
+let strictMode = false
 
 class Basic {
-    constructor(constructure = {}) {
+    constructor(constructure = {}, schema) {
         this._constructure = constructure
+        if (strictMode && schema) {
+            Joi.validate(constructure, schema, function(err, value) {
+                if (err)
+                    throw new Error(err)
+            });
+        }
     }
 
     set constructure(constructure) {}
@@ -21,7 +31,7 @@ class Basic {
  */
 
 module.exports = function(option) {
-    const strict = option.strict
+    global.strictMode = strictMode = option.strictMode
 
     const
         Multimedias = {
@@ -42,8 +52,8 @@ module.exports = function(option) {
                 constructor(urlOrBuffer) {
                     super()
 
-                    // In strict mode, will check the multimedia type and multimedia is a valid url.
-                    if (strict && typeof urlOrBuffer === 'string') {
+                    // In strictMode mode, will check the multimedia type and multimedia is a valid url.
+                    if (strictMode && typeof urlOrBuffer === 'string') {
                         if (!isValidUrl(urlOrBuffer)) {
                             console.error(`The ${type} should represent a valid URL`)
                             return new Error(`The ${type} should represent a valid URL`)
@@ -70,16 +80,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        getStarted: class getStarted extends Basic {
-            constructor(payload) {
-                super()
-                this._constructure = {
-                    get_started: {
-                        payload: payload
-                    }
-                }
-            }
-        },
+        getStarted: require('./components/GetStarted'),
 
         /**
          * Serialize greeting structure.
@@ -88,14 +89,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        greeting: class Greeting extends Basic {
-            constructor(greetingItems) {
-                super()
-                this._constructure = {
-                    greeting: greetingItems
-                }
-            }
-        },
+        greeting: require('./components/Greeting'),
 
         /**
          * Serialize greeting item structure.
@@ -105,15 +99,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        greetingItem: class GreetingItem extends Basic {
-            constructor(text, locale) {
-                super()
-                this._constructure = {
-                    text: text,
-                    locale: locale
-                }
-            }
-        },
+        greetingItem: require('./components/GreetingItem'),
 
         /**
          * Serialize quick reply structure.
@@ -123,15 +109,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        quickReply: class QuickReply extends Basic {
-            constructor(text, quickReplies) {
-                super()
-                this._constructure = {
-                    text: text,
-                    quick_replies: quickReplies
-                }
-            }
-        },
+        quickReply: require('./components/QuickReply'),
 
         /**
          * Serialize quick reply item structure.
@@ -141,17 +119,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        quickReplyItem: class QuickReplyItem extends Basic {
-            constructor(contentType, option = {}) {
-                super()
-                this._constructure = {
-                    title: option.title,
-                    content_type: contentType,
-                    payload: option.payload,
-                    image_url : option.imageUrl
-                }
-            }
-        },
+        quickReplyItem: require('./components/QuickReplyItem'),
 
         /**
          * Serialize text structure.
@@ -160,14 +128,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        text: class Text extends Basic {
-            constructor(text) {
-                super()
-                this._constructure = {
-                    text: text
-                }
-            }
-        },
+        text: require('./components/Text'),
 
         template: {
 
@@ -179,33 +140,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            button: class Template_Button extends Basic {
-                constructor(title, buttons) {
-                    super()
-                    let
-                        payload = {
-                            template_type: 'button',
-                            text: title
-                        },
-                        constructure = {
-                            attachment: {
-                                type: 'template',
-                                payload: payload
-                            }
-                        }
-
-                    if (strict) {
-                        if (buttons < 1 || buttons > 3) {
-                            console.error(`The buttons length should between 1 to 3`)
-                            throw new Error(`The buttons length should between 1 to 3`)
-                        }
-                    }
-                    Object.assign(payload, {
-                        buttons: buttons,
-                    })
-                    this._constructure = constructure
-                }
-            },
+            button: require('./components/Template/Button'),
 
             /**
              * Serialize generic template structure.
@@ -228,7 +163,7 @@ module.exports = function(option) {
                             }
                         }
 
-                    if (strict) {
+                    if (strictMode) {
                         if (elements < 1 || elements > 5) {
                             console.error(`The buttons length should between 1 to 5`)
                             throw new Error(`The buttons length should between 1 to 5`)
@@ -266,7 +201,7 @@ module.exports = function(option) {
                             }
                         }
 
-                    if (strict) {
+                    if (strictMode) {
                         if (elements < 2 || elements > 4) {
                             console.error(`The elements length should between 2 to 4`)
                             throw new Error(`The elements length should between 2 to 4`)
@@ -316,7 +251,7 @@ module.exports = function(option) {
                             }
                         }
 
-                    if (strict) {
+                    if (strictMode) {
                         if (option.elements.length > 100) {
                             console.error(`The elements length should between 0 to 100`)
                             throw new Error(`The elements length should between 0 to 100`)
@@ -342,7 +277,7 @@ module.exports = function(option) {
                 constructor(title, option = {}) {
                     super()
 
-                    if (strict && option.buttons && option.buttons.length) {
+                    if (strictMode && option.buttons && option.buttons.length) {
                         if (option.buttons.length > 3 && option.buttons.length < 1) {
                             console.error(`The buttons length should between 1 to 3`)
                             throw new Error(`The buttons length should between 1 to 3`)
@@ -374,7 +309,7 @@ module.exports = function(option) {
                 constructor(title, option = {}) {
                     super()
 
-                    if (strict && option.buttons && option.buttons.length) {
+                    if (strictMode && option.buttons && option.buttons.length) {
                         if (option.buttons.length > 1) {
                             console.error(`The buttons length should between 0 to 1`)
                             throw new Error(`The buttons length should between 0 to 1`)
@@ -443,27 +378,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            url: class Button_Url extends Basic {
-                constructor(title, url, option = {}) {
-                    super()
-
-                    if (strict && typeof url === 'string') {
-                        if (!isValidUrl(url)) {
-                            console.error(`The web_url should represent a valid URL`)
-                            throw new Error(`The web_url should represent a valid URL`)
-                        }
-                    }
-
-                    this._constructure = {
-                        type: 'web_url',
-                        title: title,
-                        url: url,
-                        webview_height_ratio: option.webview_height_ratio,
-                        messenger_extensions: option.messenger_extensions,
-                        fallback_url: option.fallback_url
-                    }
-                }
-            },
+            url: require('./components/Button/Url'),
 
             /**
              * Serialize postback button structure.
@@ -473,24 +388,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            postback: class Button_Postback extends Basic {
-                constructor(title, payload) {
-                    super()
-
-                    if (strict && typeof title === 'string') {
-                        if (title.length > 20) {
-                            console.error(`The title length should less then 20`)
-                            throw new Error(`The title length should less then 20`)
-                        }
-                    }
-
-                    this._constructure = {
-                        type: 'postback',
-                        title: title,
-                        payload: payload
-                    }
-                }
-            },
+            postback: require('./components/Button/Postback'),
 
             /**
              * Serialize phone number button structure.
@@ -500,24 +398,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            phoneNumber: class Button_PhoneNumber extends Basic {
-                constructor(title, phoneNumber) {
-                    super()
-
-                    if (strict && typeof title === 'string') {
-                        if (title.length > 20) {
-                            console.error(`The title length should less then 20`)
-                            throw new Error(`The title length should less then 20`)
-                        }
-                    }
-
-                    this._constructure = {
-                        type: 'phone_number',
-                        title: title,
-                        payload: phoneNumber
-                    }
-                }
-            },
+            phoneNumber: require('./components/Button/PhoneNumber'),
 
             /**
              * Serialize element share button structure.
@@ -525,15 +406,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            elementShare: class Button_ElementShare extends Basic {
-                constructor() {
-                    super()
-
-                    this._constructure = {
-                        type: 'element_share'
-                    }
-                }
-            },
+            elementShare: require('./components/Button/ElementShare'),
 
             /**
              * Serialize payment button structure.
@@ -575,23 +448,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            accountLink: class Button_AccountLink extends Basic {
-                constructor(url) {
-                    super()
-
-                    if (strict && typeof url === 'string') {
-                        if (!isValidUrl(url)) {
-                            console.error(`The web_url should represent a valid URL`)
-                            throw new Error(`The web_url should represent a valid URL`)
-                        }
-                    }
-
-                    this._constructure = {
-                        type: 'account_link',
-                        url: url
-                    }
-                }
-            },
+            accountLink: require('./components/Button/AccountLink'),
 
             /**
              * Serialize account unlink button structure.
@@ -599,15 +456,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            accountUnlink: class Button_accountUnlink extends Basic {
-                constructor() {
-                    super()
-
-                    this._constructure = {
-                        type: 'account_unlink'
-                    }
-                }
-            }
+            accountUnlink: require('./components/Button/AccountUnlink')
         },
     }
 

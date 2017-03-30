@@ -44,12 +44,8 @@ function serializer(object) {
 }
 
 function jsonReplacer(key, value) {
-    if (value && value.constructor) {
-        const name = value.constructor.name;
-        if (name !== 'String' && name !== 'Number' &&
-            name !== 'Object' && value.constructure) {
+    if (value && value.constructure) {
             return value.constructure
-        }
     }
     return value;
 }
