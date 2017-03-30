@@ -5,13 +5,15 @@
 const
     http = require('http'),
     util = require('util'),
+    crypto = require('crypto'),
     parse = require('co-body'),
     Url = require('url'),
     qs = require('querystring'),
-    router = require('router')(),
     send = require('./send')
 
-let VERIFY_TOKEN = ''
+let
+    APP_SECRET,
+    VERIFY_TOKEN = ''
 
 /**
  * Initialize `Interface` with given option,
@@ -24,6 +26,7 @@ module.exports = function(option = {}) {
     send.prototype.PAGE_ACCESS_TOKEN = option.pageAccessToken
     Interface.send = send
     VERIFY_TOKEN = option.verifyToken
+    APP_SECRET = option.appSecret
     return Interface
 }
 
@@ -38,6 +41,16 @@ const Interface = async function(req, res, botRouter, handler) {
 
     // End the response
     res.end()
+
+    // If supply app secret code, check the request is valid.
+    if (APP_SECRET) {
+        let hmac = crypto.createHmac('sha1', APP_SECRET)
+        hmac.update(await parse.text(req))
+        if (req.headers['x-hub-signature'] !== `sha1=${hmac.digest('hex')}`) {
+            console.error('Message integrity check failed')
+            return
+        }
+    }
 
     // Used to verify webhook
     if (req.method.toLowerCase() === 'get') {
