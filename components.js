@@ -8,23 +8,6 @@ const
 
 let strictMode = false
 
-class Basic {
-    constructor(constructure = {}, schema) {
-        this._constructure = constructure
-        if (strictMode && schema) {
-            Joi.validate(constructure, schema, function(err, value) {
-                if (err)
-                    throw new Error(err)
-            });
-        }
-    }
-
-    set constructure(constructure) {}
-
-    get constructure() {
-        return this._constructure
-    }
-}
 
 /**
  * Expose `Components`.
@@ -35,10 +18,10 @@ module.exports = function(option) {
 
     const
         Multimedias = {
-            image: class Image extends Basic {},
-            audio: class Audio extends Basic {},
-            video: class Video extends Basic {},
-            file: class File extends Basic {}
+            image: class Image extends require('./components/Basic') {},
+            audio: class Audio extends require('./components/Basic') {},
+            video: class Video extends require('./components/Basic') {},
+            file: class File extends require('./components/Basic') {}
         },
         multimediaHandle = function(type) {
             /**
@@ -149,33 +132,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            generic: class Template_Generic extends Basic {
-                constructor(elements) {
-                    super()
-                    let
-                        payload = {
-                            template_type: 'generic'
-                        },
-                        constructure = {
-                            attachment: {
-                                type: 'template',
-                                payload: payload
-                            }
-                        }
-
-                    if (strictMode) {
-                        if (elements < 1 || elements > 5) {
-                            console.error(`The buttons length should between 1 to 5`)
-                            throw new Error(`The buttons length should between 1 to 5`)
-                        }
-                    }
-
-                    Object.assign(payload, {
-                        elements: elements
-                    })
-                    this._constructure = constructure
-                }
-            },
+            generic: require('./components/Template/Generic'),
 
             /**
              * Serialize list template structure.
@@ -185,7 +142,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            list: class Template_List extends Basic {
+            list: class Template_List extends require('./components/Basic') {
                 constructor(elements, option = {}) {
                     super()
                     let
@@ -227,7 +184,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            receipt: class Template_Receipt extends Basic {
+            receipt: class Template_Receipt extends require('./components/Basic') {
                 constructor(recipient_name, order_number, currency, payment_method, summary, option = {}) {
                     super()
                     let
@@ -273,29 +230,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            generic: class TemplateElement_Generic extends Basic {
-                constructor(title, option = {}) {
-                    super()
-
-                    if (strictMode && option.buttons && option.buttons.length) {
-                        if (option.buttons.length > 3 && option.buttons.length < 1) {
-                            console.error(`The buttons length should between 1 to 3`)
-                            throw new Error(`The buttons length should between 1 to 3`)
-                        }
-                    }
-
-                    let
-                        constructure = {
-                            title: title,
-                            image_url: option.imageUrl,
-                            subtitle: option.subtitle,
-                            default_action: option.defaultAction,
-                            buttons: option.buttons,
-                        }
-
-                    this._constructure = constructure
-                }
-            },
+            generic: require('./components/Template/Generic').element,
 
             /**
              * Serialize list template element structure.
@@ -305,7 +240,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            list: class TemplateElement_List extends Basic {
+            list: class TemplateElement_List extends require('./components/Basic') {
                 constructor(title, option = {}) {
                     super()
 
@@ -338,7 +273,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        price: class Price extends Basic {
+        price: class Price extends require('./components/Basic') {
             constructor(label, amount) {
                 super()
 
@@ -356,7 +291,7 @@ module.exports = function(option) {
          * @return {Object}
          * @api public
          */
-        adjustments: class Adjustments extends Basic {
+        adjustments: class Adjustments extends require('./components/Basic') {
             constructor(option) {
                 super()
 
@@ -421,7 +356,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            payment: class Button_Payment extends Basic {
+            payment: class Button_Payment extends require('./components/Basic') {
                 constructor(payload, currency, paymentType, merchantName, requestedUserInfo, priceList, option = {}) {
                     super()
 
