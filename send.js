@@ -15,19 +15,34 @@ module.exports = function send(body, node = 'messages') {
         console.error('Need page access token to use send function.')
         return
     }
+
+    let formData = {}
+
+    if (body.recipient) {
+        formData.recipient = JSON.stringify(body.recipient)
+        formData.message = serializer(body.message)
+        if(body.filedata)
+        formData.filedata = body.filedata
+    } else {
+        formData = serializer(body)
+    }
+
     console.log('send:')
-    console.log(util.inspect(serializer(body), {
-        showHidden: false,
-        depth: null
-    }))
+    if (!formData.filedata)
+        console.log(formData)
+    else
+        console.log(util.inspect(formData), {
+            showHidden: false,
+            depth: null
+        })
+
     request({
         url: `https://graph.facebook.com/${this.API_VERSION}/me/${node}`,
         method: 'POST',
         qs: {
             access_token: this.PAGE_ACCESS_TOKEN
         },
-        json: true,
-        body: serializer(body)
+        formData: formData
     }, response)
 }
 
@@ -41,7 +56,7 @@ function response(err, response, body) {
 
 function serializer(object) {
     try {
-        return JSON.parse(JSON.stringify(object, jsonReplacer))
+        return JSON.stringify(object, jsonReplacer)
     } catch (err) {
         console.error(err)
     }

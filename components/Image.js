@@ -15,7 +15,7 @@ class Image extends require('./Basic') {
                 attachment: {
                     type: 'image',
                     payload: {
-                        url: Joi.string().uri().required()
+                        url: Joi.string().uri().optional()
                     }
                 }
             })

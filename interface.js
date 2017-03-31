@@ -106,13 +106,15 @@ const Interface = async function(req, res, botRouter, handler) {
                         req.data = data[method]
 
                         // setup res.send
-                        res.send = function(body) {
-                            // Construct basic body structure
+                        res.send = function(body, fileData) {
+                            console.log(fileData)
+                                // Construct basic body structure
                             let structure = {
                                 recipient: {
                                     id: req.psid
                                 },
-                                message: body
+                                message: body,
+                                filedata: fileData
                             }
 
                             // Send the body

@@ -15,7 +15,7 @@ class Aideo extends require('./Basic') {
                 attachment: {
                     type: 'aideo',
                     payload: {
-                        url: Joi.string().uri().required()
+                        url: Joi.string().uri().optional()
                     }
                 }
             })

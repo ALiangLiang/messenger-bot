@@ -7,7 +7,7 @@ class Basic {
             Joi.validate(constructure, schema, function(err, value) {
                 if (err)
                     throw new Error(err)
-                console.log(value)
+                        // console.log(value)
             });
         }
     }

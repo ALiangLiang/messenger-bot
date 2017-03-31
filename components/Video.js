@@ -15,7 +15,7 @@ class Video extends require('./Basic') {
                 attachment: {
                     type: 'video',
                     payload: {
-                        url: Joi.string().uri().required()
+                        url: Joi.string().uri().optional()
                     }
                 }
             })
