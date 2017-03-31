@@ -22,6 +22,12 @@ let
  * @api public
  */
 module.exports = function(option = {}) {
+    if (!option.appSecret)
+        console.warn('For security reason, you should provide a app secret code.')
+    if (!option.pageAccessToken)
+        console.warn('You need provide page access token to use send function.')
+    if (!option.verifyToken)
+        console.warn('If you want to turn on the "verify webhhok" function, you need provide a verify token.')
     send.prototype.API_VERSION = option.apiVersion || 'v2.8'
     send.prototype.PAGE_ACCESS_TOKEN = option.pageAccessToken
     Interface.send = send
@@ -39,37 +45,42 @@ module.exports = function(option = {}) {
  */
 const Interface = async function(req, res, botRouter, handler) {
 
+    // Used to verify webhook
+    if (VERIFY_TOKEN) {
+        if (req.method.toLowerCase() === 'get') {
+            req.query = qs.parse(Url.parse(req.url).query)
+            if (req.query['hub.mode'] === 'subscribe' &&
+                req.query['hub.verify_token'] === VERIFY_TOKEN) {
+                console.info('Validating webhook')
+                res.statusCode = 200
+                res.end(req.query['hub.challenge'])
+            } else {
+                console.error('Failed validation. Make sure the validation tokens match.')
+                res.statusCode = 403
+                res.end()
+            }
+            return
+        }
+    }
+
     // End the response
     res.end()
 
-    // If supply app secret code, check the request is valid.
+    // Parse the body to text
+    const text = await parse.text(req)
+
+    // If provide a app secret code, check the request is valid.
     if (APP_SECRET) {
         let hmac = crypto.createHmac('sha1', APP_SECRET)
-        hmac.update(await parse.text(req))
+        hmac.update(text)
         if (req.headers['x-hub-signature'] !== `sha1=${hmac.digest('hex')}`) {
             console.error('Message integrity check failed')
             return
         }
     }
 
-    // Used to verify webhook
-    if (req.method.toLowerCase() === 'get') {
-        req.query = qs.parse(Url.parse(req.url).query)
-        if (req.query['hub.mode'] === 'subscribe' &&
-            req.query['hub.verify_token'] === VERIFY_TOKEN) {
-            console.info('Validating webhook')
-            res.statusCode = 200
-            res.end(req.query['hub.challenge'])
-        } else {
-            console.error('Failed validation. Make sure the validation tokens match.')
-            res.statusCode = 403
-            res.end()
-        }
-        return
-    }
-
     // Parse the body to json
-    const body = await parse.json(req)
+    const body = JSON.parse(text)
 
     try {
         if (body.object === 'page' && body.entry && body.entry.length)

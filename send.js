@@ -11,6 +11,10 @@ const util = require('util')
  */
 
 module.exports = function send(body, node = 'messages') {
+    if (!this.PAGE_ACCESS_TOKEN) {
+        console.error('Need page access token to use send function.')
+        return
+    }
     console.log('send:')
     console.log(util.inspect(serializer(body), {
         showHidden: false,
@@ -45,7 +49,7 @@ function serializer(object) {
 
 function jsonReplacer(key, value) {
     if (value && value.constructure) {
-            return value.constructure
+        return value.constructure
     }
     return value;
 }

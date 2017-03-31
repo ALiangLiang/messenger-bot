@@ -4,56 +4,15 @@
  */
 const
     Url = require('url'),
-    Joi = require('joi')
-
-let strictMode = false
-
+    Joi = require('joi'),
+    Basic = require('./components/Basic')
 
 /**
  * Expose `Components`.
  */
 
 module.exports = function(option) {
-    global.strictMode = strictMode = option.strictMode
-
-    const
-        Multimedias = {
-            image: class Image extends require('./components/Basic') {},
-            audio: class Audio extends require('./components/Basic') {},
-            video: class Video extends require('./components/Basic') {},
-            file: class File extends require('./components/Basic') {}
-        },
-        multimediaHandle = function(type) {
-            /**
-             * Serialize image | file | audio | video structure.
-             *
-             * @param {String | Buffer} url or buffer of image | file | audio | video 
-             * @return {Object}
-             * @api public
-             */
-            return class extends Multimedias[type] {
-                constructor(urlOrBuffer) {
-                    super()
-
-                    // In strictMode mode, will check the multimedia type and multimedia is a valid url.
-                    if (strictMode && typeof urlOrBuffer === 'string') {
-                        if (!isValidUrl(urlOrBuffer)) {
-                            console.error(`The ${type} should represent a valid URL`)
-                            return new Error(`The ${type} should represent a valid URL`)
-                        }
-                    }
-
-                    this._constructure = {
-                        attachment: {
-                            type: type,
-                            payload: {
-                                url: urlOrBuffer
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    Basic.strictMode = option.strict
 
     const components = {
         /**
@@ -113,6 +72,42 @@ module.exports = function(option) {
          */
         text: require('./components/Text'),
 
+        /**
+         * Serialize image structure.
+         *
+         * @param {String} url
+         * @return {Object}
+         * @api public
+         */
+        image: require('./components/Image'),
+
+        /**
+         * Serialize file structure.
+         *
+         * @param {String} url
+         * @return {Object}
+         * @api public
+         */
+        file: require('./components/File'),
+
+        /**
+         * Serialize audio structure.
+         *
+         * @param {String} url
+         * @return {Object}
+         * @api public
+         */
+        audio: require('./components/Audio'),
+
+        /**
+         * Serialize video structure.
+         *
+         * @param {String} url
+         * @return {Object}
+         * @api public
+         */
+        video: require('./components/Video'),
+
         template: {
 
             /**
@@ -142,39 +137,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            list: class Template_List extends require('./components/Basic') {
-                constructor(elements, option = {}) {
-                    super()
-                    let
-                        payload = {
-                            template_type: 'list',
-                            top_element_style: option.topElementStyle || 'large',
-                            buttons: option.buttons
-                        },
-                        constructure = {
-                            attachment: {
-                                type: 'template',
-                                payload: payload
-                            }
-                        }
-
-                    if (strictMode) {
-                        if (elements < 2 || elements > 4) {
-                            console.error(`The elements length should between 2 to 4`)
-                            throw new Error(`The elements length should between 2 to 4`)
-                        }
-                        if (option.buttons && option.buttons.length > 1) {
-                            console.error(`The buttons length should between 0 to 1`)
-                            throw new Error(`The buttons length should between 0 to 1`)
-                        }
-                    }
-
-                    Object.assign(payload, {
-                        elements: elements
-                    })
-                    this._constructure = constructure
-                }
-            },
+            list: require('./components/Template/List'),
 
             /**
              * Serialize receipt template structure.
@@ -240,29 +203,7 @@ module.exports = function(option) {
              * @return {Object}
              * @api public
              */
-            list: class TemplateElement_List extends require('./components/Basic') {
-                constructor(title, option = {}) {
-                    super()
-
-                    if (strictMode && option.buttons && option.buttons.length) {
-                        if (option.buttons.length > 1) {
-                            console.error(`The buttons length should between 0 to 1`)
-                            throw new Error(`The buttons length should between 0 to 1`)
-                        }
-                    }
-
-                    let
-                        constructure = {
-                            title: title,
-                            image_url: option.imageUrl,
-                            subtitle: option.subtitle,
-                            default_action: option.defaultAction,
-                            buttons: option.buttons,
-                        }
-
-                    this._constructure = constructure
-                }
-            }
+            list: require('./components/Template/List').element
         },
 
         /**
@@ -377,6 +318,17 @@ module.exports = function(option) {
             },
 
             /**
+             * Serialize nested button structure.
+             *
+             * @param {String} title
+             * @param {Button_Url[] | Button_Postback[] | Button_Nested[]} callToActions
+             * @param {Object} option
+             * @return {Object}
+             * @api public
+             */
+            nested: require('./components/Button/Nested'),
+
+            /**
              * Serialize account link button structure.
              *
              * @param {String} url
@@ -393,14 +345,27 @@ module.exports = function(option) {
              */
             accountUnlink: require('./components/Button/AccountUnlink')
         },
-    }
 
-    // setup multimedia components
-    Object.keys(Multimedias).forEach((multimedia) => {
-        var tmp = {}
-        tmp[multimedia] = multimediaHandle(multimedia)
-        Object.assign(components, tmp)
-    })
+        /**
+         * Serialize account unlink button structure.
+         *
+         * @param {PersistentMenuLocale[]} persitent menu locale array
+         * @return {Object}
+         * @api public
+         */
+        persistentMenu: require('./components/PersistentMenu'),
+
+        /**
+         * Serialize account unlink button structure.
+         *
+         * @param {String} locale
+         * @param {Button_Url[] | Button_Postback[] | Button_Nested[]} callToActions
+         * @param {Object}  option
+         * @return {Object}
+         * @api public
+         */
+        persistentMenuLocale: require('./components/PersistentMenuLocale')
+    }
 
     return components
 }

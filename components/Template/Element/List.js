@@ -7,7 +7,7 @@ const
     Button_AccountLink = require('./../../Button/AccountLink'),
     Button_AccountUnlink = require('./../../Button/AccountUnlink')
 
-class Template_Element_Generic extends require('./../../Basic') {
+class Template_Element_List extends require('./../../Basic') {
     constructor(title, option = {}) {
         const
             constructure = {
@@ -22,17 +22,17 @@ class Template_Element_Generic extends require('./../../Basic') {
                 image_url: Joi.string().uri(),
                 subtitle: Joi.string().max(80),
                 default_action: Joi.object().type(Button_Url),
-                buttons: Joi.array().min(1).max(3).items(Joi.alternatives().try([
+                buttons: Joi.array().max(1).items(Joi.alternatives().try([
                     Joi.object().type(Button_Url),
                     Joi.object().type(Button_Postback),
                     Joi.object().type(Button_PhoneNumber),
                     Joi.object().type(Button_ElementShare),
                     Joi.object().type(Button_AccountLink),
                     Joi.object().type(Button_AccountUnlink)
-                ]))
+                ])),
             })
         super(constructure, schema)
     }
 }
 
-module.exports = Template_Element_Generic
+module.exports = Template_Element_List

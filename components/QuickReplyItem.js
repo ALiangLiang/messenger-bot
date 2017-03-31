@@ -13,7 +13,7 @@ class QuickReplyItem extends require('./Basic') {
                 title: Joi.string().max(20),
                 content_type: Joi.string().allow('text', 'location').required(),
                 payload: Joi.string().max(1000),
-                image_url: Joi.string().uri()
+                image_url: Joi.string().uri().optional()
             })
         super(constructure, schema)
     }
