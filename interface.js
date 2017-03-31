@@ -9,7 +9,7 @@ const
     parse = require('co-body'),
     Url = require('url'),
     qs = require('querystring'),
-    send = require('./send')
+    Communication = require('./Communication')
 
 let
     APP_SECRET,
@@ -28,9 +28,8 @@ module.exports = function(option = {}) {
         console.warn('You need provide page access token to use send function.')
     if (!option.verifyToken)
         console.warn('If you want to turn on the "verify webhhok" function, you need provide a verify token.')
-    send.prototype.API_VERSION = option.apiVersion || 'v2.8'
-    send.prototype.PAGE_ACCESS_TOKEN = option.pageAccessToken
-    Interface.send = send
+
+    Interface.communication = new Communication(option.apiVersion || 'v2.8', option.pageAccessToken)
     VERIFY_TOKEN = option.verifyToken
     APP_SECRET = option.appSecret
     return Interface
@@ -106,19 +105,9 @@ const Interface = async function(req, res, botRouter, handler) {
                         req.data = data[method]
 
                         // setup res.send
-                        res.send = function(body, fileData) {
-                            console.log(fileData)
-                                // Construct basic body structure
-                            let structure = {
-                                recipient: {
-                                    id: req.psid
-                                },
-                                message: body,
-                                filedata: fileData
-                            }
-
+                        res.send = (message, fileData) => {
                             // Send the body
-                            new send(structure)
+                            Interface.communication.send(req.psid, message, fileData)
                         }
 
                         botRouter(req, res, handler)
