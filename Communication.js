@@ -36,6 +36,7 @@ class Communication {
                 depth: null
             })
 
+        return new Promise((resolve, reject) =>
         request({
             url: `https://graph.facebook.com/${this.API_VERSION}/me/messages`,
             method: 'POST',
@@ -43,7 +44,7 @@ class Communication {
                 access_token: this.PAGE_ACCESS_TOKEN
             },
             formData: formData
-        }, response)
+        }, response(resolve, reject)))
     }
 
     setting(body) {
@@ -53,6 +54,7 @@ class Communication {
             depth: null
         })
 
+        return new Promise((resolve, reject) =>
         request({
             url: `https://graph.facebook.com/${this.API_VERSION}/me/messenger_profile`,
             method: 'POST',
@@ -62,17 +64,34 @@ class Communication {
             json: true,
             body: body,
             jsonReplacer: jsonReplacer
-        }, response)
+        }, response(resolve, reject)))
     }
 
+    /**
+     * @param {Number} id
+     * @return {Object} user profile
+     * @api public
+     */
+    profile(id) {
+        const
+            API_VERSION = this.API_VERSION,
+            PAGE_ACCESS_TOKEN = this.PAGE_ACCESS_TOKEN
+
+        return new Promise((resolve, reject) =>
+            request({
+                url: `https://graph.facebook.com/${API_VERSION}/${id}`,
+                method: 'GET',
+                qs: {
+                    access_token: PAGE_ACCESS_TOKEN,
+                    fields: 'first_name,last_name,profile_pic,locale,timezone,gender,is_payment_enabled'
+                },
+                json:true
+            }, response(resolve, reject)))
+    }
 }
 
-function response(err, response, body) {
-    if (err) {
-        console.error(err)
-        throw err
-    }
-    console.log(body)
+function response(resolve, reject) {
+    return (err, res, body) => (err) ? reject(err) : resolve(body)
 }
 
 function serializer(object) {

@@ -1,0 +1,127 @@
+const
+session = require('機器人-session'),
+機器人 = new require('messenger-機器人')(),
+零件 = 機器人.零件();
+
+機器人.使用(session(
+		function (err, done) {
+		if (err)
+			return done(err, false);
+
+		done(null, user);
+	}));
+
+機器人.收到('文字', function (互動, 互動) {
+	互動.說({
+		文字: `嗨~ ${互動.使用者.姓 + 互動.使用者.名}`
+	});
+	互動.說({
+		圖片: 'https://petersapparel.com/img/shirt.png'
+	});
+	互動.說({
+		音訊: 'https://petersapparel.com/bin/clip.mp3'
+	});
+	互動.說({
+		影片: 'https://petersapparel.com/bin/clip.mp4'
+	})
+	互動.說({
+		檔案: 'https://petersapparel.com/bin/receipt.pdf'
+	});
+	/* 可視為上傳到 FB */
+	機器人.製作({
+		種類: '圖片' | '音訊' | '檔案' | '影片',
+		檔案: 檔案,
+		網址: 'https://petersapparel.com/img/shirt.png'
+		可重複使用: true,
+	})
+	.then((回應) => Object.equal(回應, {
+			檔案ID: '1854626884821032'
+		}));
+	/* 產生文字指標 */
+	互動.思考();
+	/* 取消文字指標 */
+	互動.停止思考();
+	const 一般模板 = new 零件.模板('一般', {
+		標題: '標題',
+		子標題: '子標題',
+		圖片網址: 'https://petersfancybrownhats.com/company_image.png',
+		預設
+		材料: [
+			new 零件.按鈕('網址', {
+				標題: '標題',
+				網址: 'http://m.me/petershats?ref=take_quiz'
+			}),
+			new 零件.按鈕('詢問', {
+				標題: '標題',
+				回答: '使用者定義的回答'
+			}),
+			new 零件.按鈕('分享對話')
+		]
+	});
+	互動.菜單()
+});
+機器人.收到('貼圖', function (互動) {});
+機器人.收到('圖片', function (互動) {});
+機器人.收到('音訊', function (互動) {});
+機器人.收到('影片', function (互動) {})
+機器人.收到('檔案', function (互動) {});
+機器人.收到('位置', function (互動) {});
+機器人.收到('回答', function (互動) {});
+機器人.收到('快速回覆', function (互動) {
+	互動.菜單({
+		種類: '連結',
+		button: {
+			url: 'https://petersfancyapparel.com/classic_white_tshirt',
+			title: 'View Item',
+			webview_height_ratio: 'compact'
+		}
+	}).;
+	互動.菜單({
+		種類: '按鈕',
+		buttons: [{
+				title: 'View Item1',
+				payload: 'DEVELOPER_DEFINED_PAYLOAD1'
+			}, {
+				title: 'View Item2',
+				payload: 'DEVELOPER_DEFINED_PAYLOAD2'
+			}
+		]
+	});
+	互動.菜單({
+		種類: 'phone_number',
+		button: {
+			title: 'Call Representative',
+			phone_number: '+15105551234'
+		}
+	});
+	互動.菜單({
+		種類: 'share',
+		button: {
+			title: 'Call Representative',
+			phone_number: '+15105551234'
+		}
+	});
+});
+機器人.收到('delivery', function (互動) {
+	互動.ask({
+		text: 'Quick replies:',
+		quick_replies: [{
+				content_type: 'text',
+				title: 'Text',
+				payload: 'DEVELOPER_DEFINED_PAYLOAD_FOR_PICKING_RED'
+			}, {
+				content_type: 'location',
+				title: 'Location'
+			}
+		]
+	})
+});
+機器人.收到('read ', function (互動) {
+	互動.read();
+});
+
+機器人.建立({
+	key: fs.readFileSync(app.locals.key),
+	cert: fs.readFileSync(app.locals.cert),
+	ca: fs.readFileSync(app.locals.ca),
+});
